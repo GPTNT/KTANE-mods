@@ -13,6 +13,8 @@ namespace VanillaRuleModifierAssembly
             AddProperty("GetRuleManual", new Property(RuleManaul_Get, null));
             AddProperty("AddSupportedModule", new Property(null, SupportedModules_Set));
             AddProperty("RandomRuleSeed", new Property(RandomRuleSeed_Get, RandomRuleSeed_Set));
+            AddProperty("DeferredRuleInstallation", new Property(null, DeferredRuleInstallation_Set));
+            AddProperty("ApplyDeferredRules", new Property(null, ApplyDeferredRules_Set));
         }
 
         private void RandomRuleSeed_Set(object value)
@@ -42,6 +44,24 @@ namespace VanillaRuleModifierAssembly
         private object RandomRuleSeed_Get()
         {
             return VanillaRuleModifer.CurrentRandomSeed;
+        }
+
+        private void DeferredRuleInstallation_Set(object value)
+        {
+            if (VanillaRuleModifer.CurrentState != KMGameInfo.State.Setup && VanillaRuleModifer.CurrentState != KMGameInfo.State.PostGame)
+                throw new Exception("Deferred rule installation can only be configured during Setup or Post game.");
+            if (!(value is bool deferred))
+                throw new ArgumentException("Deferred rule installation must be a bool.");
+
+            VanillaRuleModifer.SetDeferredRuleInstallation(deferred);
+        }
+
+        private void ApplyDeferredRules_Set(object value)
+        {
+            if (!(value is bool) || !(bool) value)
+                throw new ArgumentException("Applying deferred rules requires true.");
+
+            VanillaRuleModifer.ApplyDeferredRules();
         }
 
         public static void AddSupportedModule(string moduleType)
