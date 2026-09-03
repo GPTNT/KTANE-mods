@@ -101,6 +101,20 @@ public class VanillaRuleModifier : MonoBehaviour
         if (writeSettings) _modSettings.WriteSettings();
     }
 
+    public void SetDeferredRuleInstallation(bool deferred)
+    {
+        _deferRuleInstallation = deferred;
+    }
+
+    public void ApplyDeferredRules()
+    {
+        if (!_deferRuleInstallation)
+            throw new System.InvalidOperationException("Deferred rule installation was not requested for this bomb.");
+
+        _deferRuleInstallation = false;
+        ApplyRules(_currentSeed, addRuleSeedWidget: false, writeManual: false);
+    }
+
     public void SetRandomRuleSeed(bool setting, bool writeSettings)
     {
         _modSettings.Settings.RandomRuleSeed = setting;
@@ -159,6 +173,7 @@ public class VanillaRuleModifier : MonoBehaviour
     private KMGameInfo.State _prevState = KMGameInfo.State.Unlock;
     private Coroutine AddWidget;
     private Coroutine FixMorseCode;
+    private bool _deferRuleInstallation;
     private void OnStateChange(KMGameInfo.State state)
     {
         if (AddWidget != null)
@@ -186,18 +201,27 @@ public class VanillaRuleModifier : MonoBehaviour
             _currentSeed = seed;
             _currentRandomSeed = _modSettings.Settings.RandomRuleSeed;
 
-            DebugLog("Generating Rules based on Seed {0}", seed);
-            GenerateRules(seed);
-            ManualGenerator.Instance.WriteManual(seed);
-        
-            if (_currentSeed != 1)
-                AddWidget = StartCoroutine(AddWidgetToBomb(RuleSeedWidget));
-            
-            FixMorseCode = StartCoroutine(FixMorseCodeModule());
+            if (_deferRuleInstallation)
+                DebugLog("Deferring configured rule installation until requested by the host.");
+            else
+                ApplyRules(seed, addRuleSeedWidget: true, writeManual: true);
         }
 
         _prevState = CurrentState;
         CurrentState = state;
+    }
+
+    private void ApplyRules(int seed, bool addRuleSeedWidget, bool writeManual)
+    {
+        DebugLog("Generating Rules based on Seed {0}", seed);
+        GenerateRules(seed);
+        if (writeManual)
+            ManualGenerator.Instance.WriteManual(seed);
+
+        if (addRuleSeedWidget && _currentSeed != 1)
+            AddWidget = StartCoroutine(AddWidgetToBomb(RuleSeedWidget));
+
+        FixMorseCode = StartCoroutine(FixMorseCodeModule());
     }
 
     public KMWidget RuleSeedWidget;
